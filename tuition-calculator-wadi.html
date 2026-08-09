@@ -895,9 +895,11 @@ function computeStudent(s, order){
   const resident = nationality === 'resident';
   const base = getBaseFee(s);
   const sib = siblingDiscount(order, base);
-  const afterSib = base - sib;
-  const pay = paymentDiscount(s);
+  const afterSib = Math.max(base - sib, 0);
+
+  const pay = afterSib > 0 ? Math.min(paymentDiscount(s), afterSib) : 0;
   const afterPay = afterSib - pay;
+
   const afterExtra = afterPay; // لا يوجد خصم إضافي في هذه النسخة
   const vat = resident ? afterExtra * 0.15 : 0;
   const total = afterExtra + vat;
@@ -912,8 +914,8 @@ function getStudentInstallments(s, c, method){
   if(method === 'full'){
     installments = [{label:'دفعة واحدة (100%)', amount:c.total}];
   } else if(method === 'regular'){
-    const sem1Net = (c.afterSib/2) - 1000; // الفصل الأول: خصم تلقائي دائمًا
-    const sem2Net = (c.afterSib/2) - (s.sem2OnTime ? 1000 : 0);
+    const sem1Net = Math.max((c.afterSib/2) - 1000, 0); // الفصل الأول: خصم تلقائي دائمًا
+    const sem2Net = Math.max((c.afterSib/2) - (s.sem2OnTime ? 1000 : 0), 0);
     installments = [
       {label:'دفعة الفصل الأول (50%)', amount: sem1Net * netMult},
       {label:'دفعة الفصل الثاني (50%)', amount: sem2Net * netMult},
@@ -921,9 +923,9 @@ function getStudentInstallments(s, c, method){
   } else if(method === 'flexible'){
     const isKG = isKGStage(s.stage);
     const step = isKG ? 500 : 750;
-    const p1Net = c.afterSib*0.35;
-    const p2Net = (c.afterSib*0.35) - (s.installment2OnTime ? step : 0);
-    const p3Net = (c.afterSib*0.30) - (s.fullPaidOnTime ? step : 0);
+    const p1Net = Math.max(c.afterSib*0.35, 0);
+    const p2Net = Math.max((c.afterSib*0.35) - (s.installment2OnTime ? step : 0), 0);
+    const p3Net = Math.max((c.afterSib*0.30) - (s.fullPaidOnTime ? step : 0), 0);
     installments = [
       {label:'الدفعة الأولى (35%)', amount: p1Net * netMult},
       {label:'الدفعة الثانية (35%)', amount: p2Net * netMult},
